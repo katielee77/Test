@@ -9,7 +9,6 @@
 import Foundation
 import RealmSwift
 import AlamofireImage
-import Crashlytics
 import UIKit
 
 extension Notification.Name {
@@ -51,6 +50,7 @@ protocol DataManagerProtocol {
     func ingredientsAnalysis(forProduct product: Product) -> [IngredientsAnalysisDetail]
     func ingredientsAnalysis(forTag tag: String) -> IngredientsAnalysis?
     func ingredientsAnalysisConfig(forTag tag: String) -> IngredientsAnalysisConfig?
+    func label(forTag: String) -> Label?
 
     func getTagline(_ callback: @escaping (_: Tagline?) -> Void)
 
@@ -256,6 +256,11 @@ class DataManager: DataManagerProtocol {
 
     func getTagline(_ callback: @escaping (Tagline?) -> Void) {
         taxonomiesApi.getTagline(callback)
+    }
+
+    func label(forTag tag: String) -> Label? {
+        let myLabel = persistenceManager.label(forCode: tag)
+        return myLabel
     }
 
     // MARK: - Settings
@@ -570,8 +575,7 @@ class DataManager: DataManagerProtocol {
         do {
             return try Realm()
         } catch let error as NSError {
-            log.error(error)
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
         }
         fatalError("Could not get Realm instance")
     }

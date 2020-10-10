@@ -8,7 +8,6 @@
 
 import UIKit
 import AVFoundation
-import Crashlytics
 import NotificationBanner
 import SVProgressHUD
 import FloatingPanel
@@ -111,11 +110,6 @@ class ScannerViewController: UIViewController, DataManagerClient {
         // set the useragent for the scan URL calls from this app
         setUserAgent()
 
-        ingredientsAnalysisFloatingContainer.distribution = .fill
-        ingredientsAnalysisFloatingContainer.spacing = 8
-        ingredientsAnalysisFloatingContainer.axis = .horizontal
-        ingredientsAnalysisFloatingContainer.isHidden = true
-        ingredientsAnalysisFloatingContainer.translatesAutoresizingMaskIntoConstraints = false
 
         floatingTopContainer.distribution = .fillProportionally
         floatingTopContainer.axis = .vertical
@@ -225,7 +219,7 @@ class ScannerViewController: UIViewController, DataManagerClient {
             let imageView = UIImageView(image: image)
             self?.videoPreviewView.addSubview(imageView)
             }, onError: { error in
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
         })
     }
 
@@ -270,7 +264,7 @@ class ScannerViewController: UIViewController, DataManagerClient {
             captureMetadataOutput.metadataObjectTypes = supportedBarcodes
         } catch {
             configResult = .failed
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
             return
         }
     }
@@ -381,7 +375,7 @@ class ScannerViewController: UIViewController, DataManagerClient {
 
     private func handleNoCamera() {
         let error = NSError(domain: "ScannerViewControllerErrorDomain", code: 1, userInfo: ["errorType": "No camera found"])
-        Crashlytics.sharedInstance().recordError(error)
+        AnalyticsManager.record(error: error)
     }
 }
 
@@ -585,12 +579,12 @@ extension ScannerViewController {
                 do {
                     try device.setTorchModeOn(level: 1.0)
                 } catch {
-                    Crashlytics.sharedInstance().recordError(error)
+                    AnalyticsManager.record(error: error)
                 }
             }
             device.unlockForConfiguration()
         } catch {
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
         }
     }
 
@@ -613,7 +607,7 @@ extension ScannerViewController {
                 device.focusMode = .continuousAutoFocus
                 device.unlockForConfiguration()
             } catch {
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
             }
         }
     }
@@ -694,7 +688,7 @@ extension ScannerViewController {
                 device.torchMode = .off
                 device.unlockForConfiguration()
             } catch {
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
             }
         }
     }

@@ -8,7 +8,6 @@
 
 import Foundation
 import RealmSwift
-import Crashlytics
 import UIKit
 
 protocol PersistenceManagerProtocol {
@@ -66,6 +65,10 @@ protocol PersistenceManagerProtocol {
     func tagLine() -> Tagline?
     var additivesIsEmpty: Bool { get }
 
+    func save(labels: [Label])
+    func label(forCode: String) -> Label?
+    var labelsIsEmpty: Bool { get }
+
     // Offline
     func save(offlineProducts: [RealmOfflineProduct])
     func getOfflineProduct(forCode: String) -> RealmOfflineProduct?
@@ -96,8 +99,7 @@ class PersistenceManager: PersistenceManagerProtocol {
                 realm.delete(item)
             }
         } catch let error as NSError {
-            log.error(error)
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
         }
     }
 
@@ -109,8 +111,7 @@ class PersistenceManager: PersistenceManagerProtocol {
                 realm.add(objects, update: .all)
             }
         } catch let error as NSError {
-            log.error("ERROR SAVING INTO REALM \(error)")
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
         }
     }
 
@@ -147,8 +148,7 @@ class PersistenceManager: PersistenceManagerProtocol {
                     realm.add(item, update: .all)
                 }
             } catch let error as NSError {
-                log.error(error)
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
             }
         }
     }
@@ -162,8 +162,7 @@ class PersistenceManager: PersistenceManagerProtocol {
                     realm.delete(realm.objects(HistoryItem.self))
                 }
             } catch let error as NSError {
-                log.error(error)
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
             }
         }
     }
@@ -259,8 +258,7 @@ class PersistenceManager: PersistenceManagerProtocol {
                 realm.delete(barcodes)
             }
         } catch let error as NSError {
-            log.error(error)
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
         }
     }
 
@@ -371,6 +369,20 @@ class PersistenceManager: PersistenceManagerProtocol {
         return getRealm().object(ofType: IngredientsAnalysisConfig.self, forPrimaryKey: code)
     }
 
+    func save(labels: [Label]) {
+        saveOrUpdate(objects: labels)
+        log.info("Saved \(labels.count) labels in taxonomy database")
+    }
+
+    func label(forCode code: String) -> Label? {
+        return getRealm().object(ofType: Label.self, forPrimaryKey: code)
+    }
+
+    var labelsIsEmpty: Bool {
+        getRealm().objects(Label.self).isEmpty
+    }
+
+    // Offline Products
     func save(offlineProducts: [RealmOfflineProduct]) {
         saveOrUpdate(objects: offlineProducts)
     }
@@ -394,8 +406,7 @@ class PersistenceManager: PersistenceManagerProtocol {
                 realm.add(prefs)
             }
         } catch let error as NSError {
-            log.error(error)
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
         }
         return prefs
     }
@@ -411,8 +422,7 @@ class PersistenceManager: PersistenceManagerProtocol {
                 }
             }
         } catch let error as NSError {
-            log.error(error)
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
         }
     }
 
@@ -426,8 +436,7 @@ class PersistenceManager: PersistenceManagerProtocol {
                 }
             }
         } catch let error as NSError {
-            log.error(error)
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
         }
     }
 
@@ -443,8 +452,7 @@ class PersistenceManager: PersistenceManagerProtocol {
                 settings.offlineStatus?.savedProductsCount = savedProductsCount
             }
         } catch let error as NSError {
-            log.error(error)
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
         }
     }
 
@@ -510,8 +518,7 @@ class PersistenceManager: PersistenceManagerProtocol {
             let count = getItemsPendingUpload().count
             NotificationCenter.default.post(name: .pendingUploadBadgeChange, object: nil, userInfo: [NotificationUserInfoKey.pendingUploadItemCount: count])
         } catch let error as NSError {
-            log.error(error)
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
         }
     }
 
@@ -538,8 +545,7 @@ class PersistenceManager: PersistenceManagerProtocol {
                     realm.add(realmItem, update: .all)
                 }
             } catch let error as NSError {
-                log.error(error)
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
             }
         }
     }
@@ -563,8 +569,7 @@ class PersistenceManager: PersistenceManagerProtocol {
                     realm.delete(realmItem)
                 }
             } catch let error as NSError {
-                log.error(error)
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
             }
         }
     }
@@ -578,8 +583,7 @@ class PersistenceManager: PersistenceManagerProtocol {
                     realm.add(realmItem, update: .all)
                 }
             } catch let error as NSError {
-                log.error(error)
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
             }
         }
     }
@@ -595,8 +599,7 @@ class PersistenceManager: PersistenceManagerProtocol {
         do {
             return try Realm()
         } catch let error as NSError {
-            log.error(error)
-            Crashlytics.sharedInstance().recordError(error)
+            AnalyticsManager.record(error: error)
         }
         fatalError("Could not get Realm instance")
     }

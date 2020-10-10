@@ -9,7 +9,6 @@
 import Foundation
 import Alamofire
 import AlamofireObjectMapper
-import Crashlytics
 import UIKit
 
 protocol ProductApi {
@@ -61,19 +60,23 @@ class ProductService: ProductApi {
             query = buildBarcodeQueryParameter(query)
             url += "/code/\(query).json"
             searchType = "by_barcode"
-            Crashlytics.sharedInstance().setObjectValue(query, forKey: "product_search_barcode")
+            AnalyticsManager.log(query, forKey: "product_search_barcode")
         } else {
             url += "/cgi/search.pl?search_terms=\(encodeParameters(query))&search_simple=1&action=process&json=1&page=\(page)"
             url.append(contentsOf: "&fields=" + OFFJson.summaryFields.joined(separator: OFFJson.FieldsSeparator))
             searchType = "by_product"
-            Crashlytics.sharedInstance().setObjectValue(query, forKey: "product_search_name")
+            AnalyticsManager.log(query, forKey: "product_search_name")
         }
 
-        Crashlytics.sharedInstance().setObjectValue(searchType, forKey: "product_search_type")
-        Crashlytics.sharedInstance().setObjectValue(page, forKey: "product_search_page")
-        Answers.logSearch(withQuery: query, customAttributes: ["file": String(describing: ProductService.self), "search_type": searchType])
+        AnalyticsManager.log(searchType, forKey: "product_search_type")
+        AnalyticsManager.log("\(page)", forKey: "product_search_page")
+        //Answers.logSearch(withQuery: query, customAttributes: ["file": String(describing: ProductService.self), "search_type": searchType])
 
         let request = Alamofire.SessionManager.default.request(url)
+        // following getProduct api call's debug mode authentication values
+        #if DEBUG
+            request.authenticate(user: "off", password: "off")
+        #endif
         log.debug(request.debugDescription)
         request.responseObject(queue: utilityQueue) { (response: DataResponse<ProductsResponse>) in
             log.debug(response.debugDescription)
@@ -83,7 +86,7 @@ class ProductService: ProductApi {
                 productsResponse.query = query
                 onSuccess(productsResponse)
             case .failure(let error as NSError):
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
                 onError(error)
             }
         }
@@ -109,8 +112,8 @@ class ProductService: ProductApi {
 
         url += "/api/v0/product/\(barcode).json"
 
-        Crashlytics.sharedInstance().setObjectValue(barcode, forKey: "product_search_barcode")
-        Crashlytics.sharedInstance().setObjectValue("by_barcode", forKey: "product_search_type")
+        AnalyticsManager.log(barcode, forKey: "product_search_barcode")
+        AnalyticsManager.log("by_barcode", forKey: "product_search_type")
 
         // aleene: disabled to get all fields, not only those specified
          // we cannot use the summary or the list as the tags are product and language dependent.
@@ -148,7 +151,7 @@ class ProductService: ProductApi {
                     onSuccess(productResponse.product)
                 }
             case .failure(let error):
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
                 onError(error)
             }
         }
@@ -161,7 +164,7 @@ class ProductService: ProductApi {
             case .success(let robotoffResponse):
                 onSuccess(robotoffResponse.questions.filter({ $0.type == "add-binary" }))
             case .failure(let error):
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
                 onError(error)
             }
         }
@@ -260,16 +263,16 @@ extension ProductService {
                                             "fileName": productImage.fileName,
                                             "fileURL": fileURL
                                             ])
-                                        Crashlytics.sharedInstance().recordError(error)
+                                        AnalyticsManager.record(error: error)
                                         onError(error)
                                     }
                                 case .failure(let error):
-                                    Crashlytics.sharedInstance().recordError(error)
+                                    AnalyticsManager.record(error: error)
                                     onError(error)
                                 }
                             }
                         case .failure(let encodingError):
-                            Crashlytics.sharedInstance().recordError(encodingError)
+                            AnalyticsManager.record(error: encodingError)
                             onError(encodingError)
                         }
                     }
@@ -331,12 +334,12 @@ extension ProductService {
                     let userInfo = ["product": product.toJSONString() ?? "{\"error\": \"Could convert product to JSON\"}"]
                     let error = NSError(domain: Errors.domain, code: Errors.codes.generic.rawValue, userInfo: userInfo)
                     log.error(error)
-                    Crashlytics.sharedInstance().recordError(error)
+                    AnalyticsManager.record(error: error)
                     onError(error)
                 }
             case .failure(let error):
                 log.error(error)
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
                 onError(error)
             }
         }
@@ -364,7 +367,7 @@ extension ProductService {
                 }
             case .failure(let error):
                 log.error(error)
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
                 onDone(nil, error)
             }
         }
@@ -390,7 +393,7 @@ extension ProductService {
                 }
             case .failure(let error as NSError):
                 log.error(error)
-                Crashlytics.sharedInstance().recordError(error)
+                AnalyticsManager.record(error: error)
                 onError(error)
             }
         }
